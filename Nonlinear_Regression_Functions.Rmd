@@ -1,0 +1,617 @@
+---
+title: "ECONOMETRICS IN R"
+subtitle: Nonlinear Regression Functions
+output: html_document
+---
+```{r,message=FALSE,warning=FALSE}
+library(AER)
+library(stargazer)
+```
+## 8.1) A General Strategy for Modelling Nonlinear Regression Functions
+```{r}
+data("CASchools")
+CASchools$size <- CASchools$students/CASchools$teachers
+CASchools$score <- (CASchools$read + CASchools$math)/2
+#Fit a simple linear model
+linear_model<- lm(score ~ income, data = CASchools)
+# plot the observations
+plot(CASchools$income, CASchools$score,
+     col = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)", 
+     ylab = "Test Score",
+     cex.main = 0.9,
+     main = "Test Score vs. District Income and a Linear OLS Regression Function")
+
+# add the regression line to the plot
+abline(linear_model, 
+       col = "red", 
+       lwd = 2)
+#Regression sobrestima a los mas altos y mas bajo y sub estima a los mas alto
+# fit the quadratic Model
+quadratic_model <- lm(score ~ income + I(income^2), data = CASchools)
+
+# obtain the model summary
+coeftest(quadratic_model, vcov. = vcovHC, type = "HC1")# fit the quadratic Model
+quadratic_model <- lm(score ~ income + I(income^2), data = CASchools)
+
+# obtain the model summary
+coeftest(quadratic_model, vcov. = vcovHC, type = "HC1")
+# draw a scatterplot of the observations for income and test score
+plot(CASchools$income, CASchools$score,
+     col  = "steelblue",
+     pch = 20,
+     xlab = "District Income (thousands of dollars)",
+     ylab = "Test Score",
+     main = "Estimated Linear and Quadratic Regression Functions")
+
+# add a linear function to the plot
+abline(linear_model, col = "black", lwd = 2)
+
+# add quatratic function to the plot
+order_id <- order(CASchools$income)
+
+lines(x = CASchools$income[order_id], 
+      y = fitted(quadratic_model)[order_id],
+      col = "red", 
+      lwd = 2) 
+# estimate a cubic model
+cubic_model <- lm(score ~ poly(income, degree = 3, raw = TRUE), data = CASchools)
+# set up hypothesis matrix
+R <- rbind(c(0, 0, 1, 0),
+            c(0, 0, 0, 1))
+
+# do the test
+linearHypothesis(cubic_model,
+                 hypothesis.matrix = R,
+                 white.adj = "hc1")# NOS dice que no podemos rechazar no que aceptamos la diferencia, es mejor hacer reg(max(order)) y viendo significancias individuales.
+#In economic, in gereral, is right with 2,3,4}
+summary(cubic_model)
+# test the hypothesis using robust standard errors
+coeftest(cubic_model, vcov. = vcovHC, type = "HC1")
+# perform robust F-test 
+linearHypothesis(cubic_model, 
+                 hypothesis.matrix = R,
+                 vcov. = vcovHC, type = "HC1")#NOpodemos reject the null
+#Interpretation of Coefficients in Nonlinear Regression Models
+# compute and assign the quadratic model
+quadriatic_model <- lm(score ~ income + I(income^2), data = CASchools)
+
+# set up data for prediction
+new_data <- data.frame(income = c(10, 11))
+
+# do the prediction
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+
+# compute the difference
+diff(Y_hat)
+# set up data for prediction
+new_data <- data.frame(income = c(40, 41))
+
+# do the prediction
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+
+# compute the difference
+diff(Y_hat)
+# basicamente estoy viendo cuato es el cambio en test de un ingreso de 10 a 11 y uno en 40 y 41
+#LOGARITHMS
+#CASE 1 semi-elasticidad
+# estimate a level-log model
+LinearLog_model <- lm(score ~ log(income), data = CASchools)
+
+# compute robust summary
+coeftest(LinearLog_model, 
+         vcov = vcovHC, type = "HC1")
+# draw a scatterplot
+plot(score ~ income, 
+     col = "steelblue",
+     pch = 20,
+     data = CASchools,
+     main = "Linear-Log Regression Line")
+
+# add the linear-log regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+# set up new data
+new_data <- data.frame(income = c(10, 11, 40, 41))
+
+# predict the outcomes 
+Y_hat <- predict(LinearLog_model, newdata = new_data)
+
+# compute the expected difference
+Y_hat_matrix <- matrix(Y_hat, nrow = 2, byrow = TRUE)
+Y_hat_matrix[, 2] - Y_hat_matrix[, 1]
+# estimate a log-linear model 
+LogLinear_model <- lm(log(score) ~ income, data = CASchools)
+
+# obtain a robust coefficient summary
+coeftest(LogLinear_model, 
+         vcov = vcovHC, type = "HC1")
+# estimate the log-log model
+LogLog_model <- lm(log(score) ~ log(income), data = CASchools)
+
+# print robust coefficient summary to the console
+coeftest(LogLog_model, 
+         vcov = vcovHC, type = "HC1")
+# generate a scatterplot
+plot(log(score) ~ income, 
+     col = "steelblue", 
+     pch = 20, 
+     data = CASchools,
+     main = "Log-Linear Regression Function")
+
+# add the log-linear regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id], 
+      fitted(LogLinear_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+
+# add the log-log regression line
+lines(sort(CASchools$income), 
+      fitted(LogLog_model)[order(CASchools$income)], 
+      col = "green", 
+      lwd = 2)
+
+# add a legend
+legend("bottomright",
+       legend = c("log-linear model", "log-log model"),
+       lwd = 2,
+       col = c("red", "green"))
+# estimate the polylog model
+polyLog_model <- lm(score ~ log(income) + I(log(income)^2) + I(log(income)^3), 
+                    data = CASchools)
+
+# print robust summary to the console
+coeftest(polyLog_model, 
+         vcov = vcovHC, type = "HC1")
+# compute the adj. R^2 for the nonlinear models
+adj_R2 <-rbind("quadratic" = summary(quadratic_model)$adj.r.squared,
+               "cubic" = summary(cubic_model)$adj.r.squared,
+               "LinearLog" = summary(LinearLog_model)$adj.r.squared,
+               "LogLinear" = summary(LogLinear_model)$adj.r.squared,
+               "LogLog" = summary(LogLog_model)$adj.r.squared,
+               "polyLog" = summary(polyLog_model)$adj.r.squared)
+
+# assign column names
+colnames(adj_R2) <- "adj_R2"
+
+adj_R2
+# generate a scatterplot
+plot(score ~ income, 
+     data = CASchools,
+     col = "steelblue", 
+     pch = 20,
+     main = "Linear-Log and poly-Log Regression Functions")
+
+# add the linear-log regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "darkgreen", 
+      lwd = 2)
+
+# add the cubic regression line
+lines(x = CASchools$income[order_id], 
+      y = fitted(polyLog_model)[order_id],
+      col = "darkred", 
+      lwd = 2) 
+```
+
+
+## 8.2) Nonlinear Functions of a Single Independent Variable
+```{r}
+# estimate a cubic model
+cubic_model <- lm(score ~ poly(income, degree = 3, raw = TRUE), data = CASchools)
+# test the hypothesis of a linear model against quadratic or polynomial
+# alternatives
+
+# set up hypothesis matrix
+R <- rbind(c(0, 0, 1, 0),
+            c(0, 0, 0, 1))
+
+# do the test
+linearHypothesis(cubic_model,
+                 hypothesis.matrix = R,
+                 white.adj = "hc1")
+summary(cubic_model)
+# test the hypothesis using robust standard errors
+coeftest(cubic_model, vcov. = vcovHC, type = "HC1")
+# perform robust F-test 
+linearHypothesis(cubic_model, 
+                 hypothesis.matrix = R,
+                 vcov. = vcovHC, type = "HC1")
+#The interpretation
+# compute and assign the quadratic model
+quadriatic_model <- lm(score ~ income + I(income^2), data = CASchools)
+
+# set up data for prediction
+new_data <- data.frame(income = c(10, 11))
+
+# do the prediction
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+
+# compute the difference
+diff(Y_hat)
+# set up data for prediction
+new_data <- data.frame(income = c(40, 41))
+
+# do the prediction
+Y_hat <- predict(quadriatic_model, newdata = new_data)
+
+# compute the difference
+diff(Y_hat)
+# LOGARITMOS
+# estimate a level-log model
+LinearLog_model <- lm(score ~ log(income), data = CASchools)
+
+# compute robust summary
+coeftest(LinearLog_model, 
+         vcov = vcovHC, type = "HC1")
+# draw a scatterplot
+plot(score ~ income, 
+     col = "steelblue",
+     pch = 20,
+     data = CASchools,
+     main = "Linear-Log Regression Line")
+
+# add the linear-log regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+# set up new data
+new_data <- data.frame(income = c(10, 11, 40, 41))
+
+# predict the outcomes 
+Y_hat <- predict(LinearLog_model, newdata = new_data)
+
+# compute the expected difference
+Y_hat_matrix <- matrix(Y_hat, nrow = 2, byrow = TRUE)
+Y_hat_matrix[, 2] - Y_hat_matrix[, 1]
+# estimate a log-linear model 
+LogLinear_model <- lm(log(score) ~ income, data = CASchools)
+
+# obtain a robust coefficient summary
+coeftest(LogLinear_model, 
+         vcov = vcovHC, type = "HC1")
+# estimate the log-log model
+LogLog_model <- lm(log(score) ~ log(income), data = CASchools)
+
+# print robust coefficient summary to the console
+coeftest(LogLog_model, 
+         vcov = vcovHC, type = "HC1")
+# generate a scatterplot
+plot(log(score) ~ income, 
+     col = "steelblue", 
+     pch = 20, 
+     data = CASchools,
+     main = "Log-Linear Regression Function")
+
+# add the log-linear regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id], 
+      fitted(LogLinear_model)[order_id], 
+      col = "red", 
+      lwd = 2)
+
+# add the log-log regression line
+lines(sort(CASchools$income), 
+      fitted(LogLog_model)[order(CASchools$income)], 
+      col = "green", 
+      lwd = 2)
+
+# add a legend
+legend("bottomright",
+       legend = c("log-linear model", "log-log model"),
+       lwd = 2,
+       col = c("red", "green"))
+# estimate the polylog model
+polyLog_model <- lm(score ~ log(income) + I(log(income)^2) + I(log(income)^3), 
+                    data = CASchools)
+
+# print robust summary to the console
+coeftest(polyLog_model, 
+         vcov = vcovHC, type = "HC1")
+# compute the adj. R^2 for the nonlinear models
+adj_R2 <-rbind("quadratic" = summary(quadratic_model)$adj.r.squared,
+               "cubic" = summary(cubic_model)$adj.r.squared,
+               "LinearLog" = summary(LinearLog_model)$adj.r.squared,
+               "LogLinear" = summary(LogLinear_model)$adj.r.squared,
+               "LogLog" = summary(LogLog_model)$adj.r.squared,
+               "polyLog" = summary(polyLog_model)$adj.r.squared)
+
+# assign column names
+colnames(adj_R2) <- "adj_R2"
+
+adj_R2
+# generate a scatterplot
+plot(score ~ income, 
+     data = CASchools,
+     col = "steelblue", 
+     pch = 20,
+     main = "Linear-Log and Cubic Regression Functions")
+
+# add the linear-log regression line
+order_id  <- order(CASchools$income)
+
+lines(CASchools$income[order_id],
+      fitted(LinearLog_model)[order_id], 
+      col = "darkgreen", 
+      lwd = 2)
+
+# add the cubic regression line
+lines(x = CASchools$income[order_id], 
+      y = fitted(cubic_model)[order_id],
+      col = "darkred", 
+      lwd = 2) 
+```
+
+
+## 8.3) Interactions Between Independent Variables
+
+```{r,results='asis'}
+# append HiSTR to CASchools
+# iteration between binary
+CASchools$HiSTR <- as.numeric(CASchools$size >= 20)
+
+# append HiEL to CASchools
+CASchools$HiEL <- as.numeric(CASchools$english >= 10)
+# estimate the model with a binary interaction term
+bi_model <- lm(score ~ HiSTR * HiEL, data = CASchools)
+
+# print a robust summary of the coefficients
+coeftest(bi_model, vcov. = vcovHC, type = "HC1")
+# estimate means for all combinations of HiSTR and HiEL
+# 1.
+predict(bi_model, newdata = data.frame("HiSTR" = 0, "HiEL" = 0))
+# 2.
+predict(bi_model, newdata = data.frame("HiSTR" = 0, "HiEL" = 1))
+# 3.
+predict(bi_model, newdata = data.frame("HiSTR" = 1, "HiEL" = 0))
+#iteration continuous and binary
+# generate artificial data
+set.seed(1)
+
+X <- runif(200, 0, 15)
+D <- sample(0:1, 200, replace = T)
+Y <- 450 +  150 * X + 500 * D + 50 * (X * D) + rnorm(200, sd = 300)
+
+# divide plotting area accordingly
+m <- rbind(c(1, 2), c(3, 0))
+graphics::layout(m)
+
+# estimate the models and plot the regression lines
+
+# 1. (baseline model)
+plot(X,
+     log(Y),
+     pch = 20,
+     col = "steelblue",
+     main = "Different Intercepts, Same Slope")
+
+mod1_coef <- lm(log(Y) ~ X + D)$coefficients
+
+abline(coef = c(mod1_coef[1], mod1_coef[2]),
+       col = "red",
+       lwd = 1.5)
+
+abline(
+   coef = c(mod1_coef[1] + mod1_coef[3], mod1_coef[2]),
+   col = "green",
+   lwd = 1.5
+)
+
+# 2. (baseline model + interaction term)
+plot(X,
+     log(Y),
+     pch = 20,
+     col = "steelblue",
+     main = "Different Intercepts, Different Slopes")
+
+mod2_coef <- lm(log(Y) ~ X + D + X:D)$coefficients
+
+abline(coef = c(mod2_coef[1], mod2_coef[2]),
+       col = "red",
+       lwd = 1.5)
+
+abline(
+   coef = c(mod2_coef[1] + mod2_coef[3], mod2_coef[2] + mod2_coef[4]),
+   col = "green",
+   lwd = 1.5
+)
+
+# 3. (omission of D as regressor + interaction term)
+plot(X,
+     log(Y),
+     pch = 20,
+     col = "steelblue",
+     main = "Same Intercept, Different Slopes")
+
+mod3_coef <- lm(log(Y) ~ X + X:D)$coefficients # Termino : incluye sol iterados en cambio * incluye interados y separados
+
+abline(coef = c(mod3_coef[1], mod3_coef[2]),
+       col = "red",
+       lwd = 1.5)
+
+abline(
+   coef = c(mod3_coef[1], mod3_coef[2] + mod3_coef[3]),
+   col = "green",
+   lwd = 1.5
+)
+# identify observations with PctEL >= 10
+id <- CASchools$english >= 10
+graphics::layout(1)
+# plot observations with HiEL = 0 as red dots
+plot(
+   CASchools$size[!id],
+   CASchools$score[!id],
+   xlim = c(0, 27),
+   ylim = c(600, 720),
+   pch = 20,
+   col = "red",
+   main = "",
+   xlab = "Class Size",
+   ylab = "Test Score"
+)
+
+# plot observations with HiEL = 1 as green dots
+points(CASchools$size[id],
+       CASchools$score[id],
+       pch = 20,
+       col = "green")
+
+# read out estimated coefficients of bci_model
+coefs <- bi_model$coefficients
+
+# draw the estimated regression line for HiEL = 0
+abline(coef = c(coefs[1], coefs[2]),
+       col = "red",
+       lwd = 1.5)
+
+# draw the estimated regression line for HiEL = 1
+abline(
+   coef = c(coefs[1] + coefs[3], coefs[2] + coefs[4]),
+   col = "green",
+   lwd = 1.5
+)
+
+# add a legend to the plot
+legend(
+   "topright",
+   pch = c(20, 20),
+   col = c("red", "green"),
+   legend = c("HiEL = 0", "HiEL = 1")
+)
+#Application to the Student-Teacher Ratio and the Percentage of English Learners
+#Iteration between continouos
+# estimate regression model including the interaction between 'PctEL' and 'size'
+cci_model <-
+   lm(score ~ size + english + english * size, data = CASchools)
+
+# print a summary to the console
+coeftest(cci_model, vcov. = vcovHC, type = "HC1")
+summary(CASchools$english)# Si es que el E(Y|English=Mediana)=-1.12+0.00012*8.78=-1.11
+
+#Example: The Demand for Economic Journals
+data("Journals")
+#Redefinimos variabels
+Journals$PricePerCitation <- Journals$price / Journals$citations
+Journals$Age <- 2000 - Journals$foundingyear
+Journals$Characters <- Journals$charpp * Journals$pages / 10 ^ 6
+Journals$Subscriptions <- Journals$subs
+summary(Journals$PricePerCitation)
+# Ahora estimaremos cuatro modelos 1_linear, 2_augments(I) by Ln(Age)and Ln(Chr), 3_ cubic an iterate term 4_ sin cubic
+Journals_mod1 <-
+   lm(log(Subscriptions) ~ log(PricePerCitation),                    data = Journals)
+
+Journals_mod2 <- lm(log(Subscriptions) ~ log(PricePerCitation)
+                    + log(Age) + log(Characters),
+                    data = Journals)
+
+Journals_mod3 <- lm(
+   log(Subscriptions) ~
+      log(PricePerCitation) + I(log(PricePerCitation) ^ 2)
+   + I(log(PricePerCitation) ^ 3) + log(Age)
+   + log(Age):log(PricePerCitation) + log(Characters),
+   data = Journals
+)
+
+Journals_mod4 <- lm(
+   log(Subscriptions) ~
+      log(PricePerCitation) + log(Age)
+   + log(Age):log(PricePerCitation) +
+      log(Characters),
+   data = Journals
+)
+
+# gather robust standard errors in a list
+rob_se <- list(sqrt(diag(vcovHC(
+   Journals_mod1, type = "HC1"
+))),
+sqrt(diag(vcovHC(
+   Journals_mod2, type = "HC1"
+))),
+sqrt(diag(vcovHC(
+   Journals_mod3, type = "HC1"
+))),
+sqrt(diag(vcovHC(
+   Journals_mod4, type = "HC1"
+))))
+
+# generate a Latex table using stargazer
+stargazer(
+   Journals_mod1,
+   Journals_mod2,
+   Journals_mod3,
+   Journals_mod4,
+   type='html',
+   se = rob_se,
+   digits = 3,
+   column.labels = c("(I)", "(II)", "(III)", "(IV)")
+   
+)
+# divide plotting area
+m <- rbind(c(1, 2), c(3, 0))
+graphics::layout(m)
+
+# scatterplot
+plot(Journals$PricePerCitation, 
+     Journals$Subscriptions, 
+     pch = 20, 
+     col = "steelblue",
+     ylab = "Subscriptions",
+     xlab = "ln(Price per ciation)",
+     main = "(a)")
+
+# log-log scatterplot and estimated regression line (I)
+plot(log(Journals$PricePerCitation), 
+     log(Journals$Subscriptions), 
+     pch = 20, 
+     col = "steelblue",
+     ylab = "ln(Subscriptions)",
+     xlab = "ln(Price per ciation)",
+     main = "(b)")
+
+abline(Journals_mod1,
+       lwd = 1.5)
+
+# log-log scatterplot and regression lines (IV) for Age = 5 and Age = 80
+plot(log(Journals$PricePerCitation), 
+     log(Journals$Subscriptions), 
+     pch = 20, 
+     col = "steelblue",
+     ylab = "ln(Subscriptions)",
+     xlab = "ln(Price per ciation)",
+     main = "(c)")
+
+JM4C <-Journals_mod4$coefficients
+
+# Age = 80
+abline(coef = c(JM4C[1] + JM4C[3] * log(80), 
+                JM4C[2] + JM4C[5] * log(80)),
+       col = "darkred",
+       lwd = 1.5)
+
+# Age = 5
+abline(coef = c(JM4C[1] + JM4C[3] * log(5), 
+                JM4C[2] + JM4C[5] * log(5)),
+       col = "darkgreen",
+       lwd = 1.5)
+#Conclusiones generales
+#1) Demanda por journal nuevos es mas grande que por viejos
+#2) Evidencia por no rechazar en III) polinomios en test F
+#3) Mas grande mayor precio.
+```
+
+
+## 8.4) Non linear Effects on Test Scores of the Student-Teacher Ratio
