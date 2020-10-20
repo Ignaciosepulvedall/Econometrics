@@ -6,4 +6,4 @@
 
 econometrics exercises in R, made by me 
 
-Introduccion a la Econometria WOOLDRIGDE
+Introduccion a la Econometria WOOLDRIGDE * En proceso 
